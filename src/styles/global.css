@@ -66,3 +66,100 @@ h1,h2,h3,p{margin-top:0}
 .article-end{text-align:center;border-top:1px solid var(--line);margin-top:50px;padding-top:28px;color:var(--muted);font-size:12px}
 .article-end span{color:var(--accent);font-size:22px}.article-end a{color:var(--accent);font-weight:600}
 @media(max-width:620px){.site-shell{width:min(100% - 34px,920px)}.site-header{height:72px}.brand{font-size:18px}nav{gap:14px;font-size:12px}.hero{padding:64px 0 58px}.post-row{grid-template-columns:1fr 18px;gap:6px 12px;padding:21px 0}.post-meta{grid-column:1/-1;flex-direction:row;gap:12px}.post-copy h3{font-size:17px}.post-copy p{font-size:12px}.topic-strip{grid-template-columns:1fr;gap:20px}.site-footer{flex-direction:column;gap:2px}.archive-row{grid-template-columns:48px 1fr 48px;gap:8px;font-size:12px}.page-prose{padding-top:50px}.article-page{padding-top:28px}.back-link{margin-bottom:28px}}
+
+/* 独立杂志风格：第一阶段 */
+:root {
+  --paper: #f7f4ed;
+  --ink: #282820;
+  --muted: #777267;
+  --line: #dcd5c8;
+  --accent: #a34f36;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.site-shell {
+  width: min(100% - 48px, 1040px);
+}
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.hero {
+  padding: 112px 0 88px;
+}
+
+.hero h1,
+.archive-page h1,
+.page-prose h1 {
+  font-size: clamp(38px, 7vw, 72px);
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+}
+
+.hero .eyebrow {
+  color: var(--accent);
+  letter-spacing: 0.2em;
+}
+
+.intro {
+  max-width: 560px;
+  font-size: 16px;
+  line-height: 2;
+}
+
+.section-block {
+  padding: 56px 0 72px;
+  border-top: 1px solid var(--line);
+}
+
+.post-list {
+  border-top: 1px solid var(--line);
+}
+
+.post-row {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.post-row h3 {
+  font-family: "Noto Serif SC", serif;
+  font-size: clamp(20px, 3vw, 28px);
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+.post-row h3 a:hover {
+  color: var(--accent);
+}
+
+.tags span,
+.topic-list span {
+  border-color: var(--line);
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 620px) {
+  .site-shell {
+    width: min(100% - 32px, 1040px);
+  }
+
+  .hero {
+    padding: 72px 0 56px;
+  }
+
+  .section-block {
+    padding: 40px 0 48px;
+  }
+
+  .post-row {
+    padding: 22px 0;
+  }
+}
