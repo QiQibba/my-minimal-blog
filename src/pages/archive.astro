@@ -1,0 +1,25 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const years = [...new Set(posts.map((p) => p.data.pubDate.getFullYear()))];
+---
+<BaseLayout title="文章归档 — 慢慢记录">
+  <section class="archive-page">
+    <p class="eyebrow">ALL ENTRIES</p>
+    <h1>文章归档</h1>
+    <p class="intro">所有记录，按时间慢慢排列。</p>
+    {years.map((year) => (
+      <section class="year-group">
+        <h2>{year}</h2>
+        {posts.filter((p) => p.data.pubDate.getFullYear() === year).map((post) => (
+          <article class="archive-row">
+            <time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}</time>
+            <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+            <span>{post.data.category}</span>
+          </article>
+        ))}
+      </section>
+    ))}
+  </section>
+</BaseLayout>
