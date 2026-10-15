@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const posts = Object.values(import.meta.glob('../content/blog/*.{md,mdx}', { eager: true, import: 'frontmatter' }));
+---
+
+<BaseLayout title="站内搜索">
+  <section class="section-block">
+    <p class="eyebrow">SEARCH</p>
+    <h1>站内搜索</h1>
+    <p>搜索文章标题和摘要，找回曾经记录的想法。</p>
+
+    <input
+      id="search-input"
+      type="search"
+      placeholder="输入关键词……"
+      aria-label="搜索文章"
+    />
+
+    <div id="search-results"></div>
+  </section>
+</BaseLayout>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('#search-input');
+  const results = document.querySelector<HTMLDivElement>('#search-results');
+
+  const posts = Object.entries(
+    import.meta.glob('../content/blog/*.{md,mdx}', {
+      eager: true,
+      import: 'frontmatter',
+    })
+  ).map(([path, data]) => {
+    const post = data as {
+      title?: string;
+      description?: string;
+      pubDate?: string | Date;
+    };
+
+    return {
+      title: post.title ?? '未命名文章',
+      description: post.description ?? '',
+      url: path
+        .replace('../content/blog/', '/my-minimal-blog/blog/')
+        .replace(/\.(md|mdx)$/, ''),
+    };
+  });
+
+  function renderResults(keyword: string) {
+    if (!results) return;
+
+    const query = keyword.trim().toLowerCase();
+    const matched = query
+      ? posts.filter((post) =>
+          `${post.title} ${post.description}`.toLowerCase().includes(query)
+        )
+      : [];
+
+    results.innerHTML = '';
+
+    if (!query) {
+      results.textContent = '输入关键词开始搜索。';
+      return;
+    }
+
+    if (matched.length === 0) {
+      results.textContent = '没有找到相关文章。';
+      return;
+    }
+
+    matched.forEach((post) => {
+      const article = document.createElement('article');
+      const link = document.createElement('a');
+      const description = document.createElement('p');
+
+      link.href = post.url;
+      link.textContent = post.title;
+      description.textContent = post.description;
+
+      article.append(link, description);
+      results.append(article);
+    });
+  }
+
+  input?.addEventListener('input', () => renderResults(input.value));
+  renderResults('');
+</script>

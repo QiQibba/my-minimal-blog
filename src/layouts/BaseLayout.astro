@@ -15,11 +15,17 @@ import '../styles/global.css';
     <div class="site-shell">
       <header class="site-header">
         <a class="brand" href="/my-minimal-blog/">慢慢记录<span>。</span></a>
+
 <nav aria-label="主导航">
   <a href="/my-minimal-blog/">首页</a>
   <a href="/my-minimal-blog/archive/">文章归档</a>
-          <a href="/my-minimal-blog/about/">关于</a>
-        </nav>
+  <a href="/my-minimal-blog/about/">关于</a>
+  <a href="/my-minimal-blog/search/">站内搜索</a>
+  <button id="theme-toggle" type="button" aria-label="切换深色模式">
+    深色模式
+  </button>
+</nav>
+
       </header>
       <main><slot /></main>
       <footer class="site-footer">
@@ -27,5 +33,26 @@ import '../styles/global.css';
         <span>用心记录 · 慢慢更新</span>
       </footer>
     </div>
+  
+<script>
+  const themeToggle = document.querySelector('#theme-toggle');
+
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+}
+
+themeToggle?.addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  }
+});
+</script>
+
   </body>
 </html>
