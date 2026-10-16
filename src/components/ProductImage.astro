@@ -1,0 +1,65 @@
+---
+import { getProductImageUrl } from '../lib/products';
+
+interface Props {
+  image?: {
+    src: string;
+    alt: string;
+  };
+  imageClass?: string;
+  placeholderClass?: string;
+  loading?: 'eager' | 'lazy';
+  highPriority?: boolean;
+}
+
+const {
+  image,
+  imageClass = 'product-image',
+  placeholderClass = '',
+  loading = 'lazy',
+  highPriority = false,
+} = Astro.props;
+const imageUrl = image
+  ? getProductImageUrl(image.src, import.meta.env.BASE_URL)
+  : undefined;
+---
+{image ? (
+  <div class:list={['product-image-frame', imageClass === 'product-detail-image' && 'product-detail-image-frame']}>
+    <img
+      class={imageClass}
+      src={imageUrl}
+      alt={image.alt}
+      loading={loading}
+      fetchpriority={highPriority ? 'high' : undefined}
+      data-product-image
+    />
+    <div class="product-image-placeholder image-fallback" role="img" aria-label="商品图片待补充">
+      商品图片待补充
+    </div>
+  </div>
+) : (
+  <div class:list={['product-image-placeholder', placeholderClass]} role="img" aria-label="商品图片待补充">
+    商品图片待补充
+  </div>
+)}
+
+<script>
+  function showPlaceholder(image: HTMLImageElement) {
+    image.closest('.product-image-frame')?.classList.add('has-broken-image');
+  }
+
+  document.querySelectorAll<HTMLImageElement>('img[data-product-image]').forEach((image) => {
+    if (image.complete && image.naturalWidth === 0) showPlaceholder(image);
+  });
+
+  document.addEventListener(
+    'error',
+    (event) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement && target.matches('img[data-product-image]')) {
+        showPlaceholder(target);
+      }
+    },
+    true
+  );
+</script>

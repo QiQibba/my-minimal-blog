@@ -24,6 +24,8 @@ const posts = Object.values(import.meta.glob('../content/blog/*.{md,mdx}', { eag
 <script>
   const input = document.querySelector<HTMLInputElement>('#search-input');
   const results = document.querySelector<HTMLDivElement>('#search-results');
+  const base = document.body.dataset.base;
+  if (!base) throw new Error('站内搜索无法读取网站基础路径。');
 
   const posts = Object.entries(
     import.meta.glob('../content/blog/*.{md,mdx}', {
@@ -41,8 +43,8 @@ const posts = Object.values(import.meta.glob('../content/blog/*.{md,mdx}', { eag
       title: post.title ?? '未命名文章',
       description: post.description ?? '',
       url: path
-        .replace('../content/blog/', '/my-minimal-blog/blog/')
-        .replace(/\.(md|mdx)$/, ''),
+        .replace('../content/blog/', `${base}blog/`)
+        .replace(/\.(md|mdx)$/, '/'),
     };
   });
 

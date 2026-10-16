@@ -1,6 +1,11 @@
 ---
-const { title = '慢慢记录', description = '关于生活、阅读、技术与日常的个人记录。' } = Astro.props;
 import '../styles/global.css';
+
+const {
+  title = '产品与使用指南',
+  description = '浏览产品资料、使用教程，或了解如何联系企业微信客服。',
+} = Astro.props;
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -8,51 +13,116 @@ import '../styles/global.css';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#faf9f6" />
+    <meta name="theme-color" content="#faf8f3" />
     <title>{title}</title>
   </head>
-  <body>
+  <body data-base={base}>
     <div class="site-shell">
       <header class="site-header">
-        <a class="brand" href="/my-minimal-blog/">慢慢记录<span>。</span></a>
-
-<nav aria-label="主导航">
-  <a href="/my-minimal-blog/">首页</a>
-  <a href="/my-minimal-blog/archive/">文章归档</a>
-  <a href="/my-minimal-blog/about/">关于</a>
-  <a href="/my-minimal-blog/search/">站内搜索</a>
-  <button id="theme-toggle" type="button" aria-label="切换深色模式">
-    深色模式
-  </button>
-</nav>
-
+        <a class="brand" href={base}>产品与使用指南<span>。</span></a>
+        <button
+          id="menu-toggle"
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="header-menu"
+        >
+          <span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>菜单</span>
+        </button>
+        <div class="header-menu" id="header-menu">
+          <nav aria-label="主导航">
+            <a href={base}>首页</a>
+            <a href={`${base}tutorials/`}>产品使用教程</a>
+            <a href={`${base}products/`}>商品推荐</a>
+            <a href={`${base}contact/`}>联系客服</a>
+          </nav>
+          <div class="header-tools">
+            <a class="search-link" href={`${base}search/`}>站内搜索</a>
+            <button id="theme-toggle" type="button" aria-label="切换深色模式">深色模式</button>
+          </div>
+        </div>
       </header>
       <main><slot /></main>
       <footer class="site-footer">
-        <span>写下所想，留住日常。</span>
-        <span>用心记录 · 慢慢更新</span>
+        <span>产品资料与使用教程</span>
+        <a href={`${base}contact/`}>联系客服</a>
       </footer>
     </div>
-  
-<script>
-  const themeToggle = document.querySelector('#theme-toggle');
+    <aside class="service-widget is-collapsed" aria-label="企业微信客服入口">
+      <a id="service-link" class="service-float" href={`${base}contact/`}>企业微信客服</a>
+      <button
+        class="service-control service-collapse"
+        type="button"
+        aria-label="收起客服入口"
+        aria-controls="service-link"
+        aria-expanded="false"
+      >×</button>
+      <button
+        class="service-control service-expand"
+        type="button"
+        aria-label="展开企业微信客服入口"
+        aria-controls="service-link"
+        aria-expanded="false"
+      >客服</button>
+    </aside>
+    <script>
+      const menuToggle = document.querySelector<HTMLButtonElement>('#menu-toggle');
+      const siteHeader = document.querySelector<HTMLElement>('.site-header');
+      const themeToggle = document.querySelector<HTMLButtonElement>('#theme-toggle');
+      const serviceWidget = document.querySelector<HTMLElement>('.service-widget');
+      const serviceCollapse = document.querySelector<HTMLButtonElement>('.service-collapse');
+      const serviceExpand = document.querySelector<HTMLButtonElement>('.service-expand');
 
-if (localStorage.getItem('theme') === 'dark') {
-  document.documentElement.setAttribute('data-theme', 'dark');
-}
+      serviceCollapse?.addEventListener('click', () => {
+        serviceWidget?.classList.add('is-collapsed');
+        serviceCollapse.setAttribute('aria-expanded', 'false');
+        serviceExpand?.setAttribute('aria-expanded', 'false');
+        serviceExpand?.focus();
+      });
 
-themeToggle?.addEventListener('click', () => {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      serviceExpand?.addEventListener('click', () => {
+        serviceWidget?.classList.remove('is-collapsed');
+        serviceCollapse?.setAttribute('aria-expanded', 'true');
+        serviceExpand.setAttribute('aria-expanded', 'true');
+        serviceCollapse?.focus();
+      });
 
-  if (isDark) {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('theme', 'light');
-  } else {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    localStorage.setItem('theme', 'dark');
-  }
-});
-</script>
+      menuToggle?.addEventListener('click', () => {
+        const isOpen = siteHeader?.classList.toggle('menu-open') ?? false;
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+      });
 
+      document.querySelectorAll<HTMLAnchorElement>('#header-menu a').forEach((link) => {
+        link.addEventListener('click', () => {
+          siteHeader?.classList.remove('menu-open');
+          menuToggle?.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && siteHeader?.classList.contains('menu-open')) {
+          siteHeader.classList.remove('menu-open');
+          menuToggle?.setAttribute('aria-expanded', 'false');
+          menuToggle?.focus();
+        }
+      });
+
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+
+      themeToggle?.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+        if (isDark) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('theme', 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          localStorage.setItem('theme', 'dark');
+        }
+      });
+    </script>
   </body>
 </html>

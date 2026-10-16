@@ -1,0 +1,38 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const tutorials = await getCollection('tutorials');
+  return tutorials.map((tutorial) => ({
+    params: { slug: tutorial.id },
+    props: { tutorial },
+  }));
+}
+
+const { tutorial } = Astro.props;
+const { Content } = await render(tutorial);
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+const date = tutorial.data.pubDate.toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+<BaseLayout title={`${tutorial.data.title} — 产品使用教程`} description={tutorial.data.description}>
+  <article class="article-page">
+    <a class="back-link" href={`${base}tutorials/`}>← 返回教程列表</a>
+    <header class="article-header">
+      {tutorial.data.sample && <span class="sample-badge">示例教程</span>}
+      <p class="eyebrow">{date}</p>
+      <h1>{tutorial.data.title}</h1>
+      <p class="article-description">{tutorial.data.description}</p>
+      {tutorial.data.tags.length > 0 && <div class="tags">{tutorial.data.tags.map((tag) => <span>#{tag}</span>)}</div>}
+    </header>
+    <div class="prose"><Content /></div>
+    <div class="article-end">
+      <p>更多教程请返回教程列表。</p>
+      <a href={`${base}tutorials/`}>浏览其他教程 ↗</a>
+    </div>
+  </article>
+</BaseLayout>

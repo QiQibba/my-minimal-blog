@@ -1,0 +1,66 @@
+---
+import { render } from 'astro:content';
+import { getProducts } from '../../lib/products';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductImage from '../../components/ProductImage.astro';
+
+export async function getStaticPaths() {
+  const products = await getProducts();
+  return products.map((product) => ({
+    params: { slug: product.slug },
+    props: { product },
+  }));
+}
+
+const { product } = Astro.props;
+const rendered = product.source === 'local' ? await render(product.entry) : null;
+const Content = rendered?.Content;
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+---
+<BaseLayout title={`${product.data.name} — 商品推荐`} description={product.data.summary}>
+  <article class="article-page">
+    <a class="back-link" href={`${base}products/`}>← 返回商品列表</a>
+    <header class="article-header">
+      <div class="product-card-labels">
+        <span class="product-category">{product.data.category}</span>
+        {product.data.recommended && <span class="sample-badge">推荐</span>}
+      </div>
+      {product.data.sample && <span class="sample-badge">示例商品</span>}
+      <h1>{product.data.name}</h1>
+      <p class="article-description">{product.data.summary}</p>
+    </header>
+    <ProductImage
+      image={product.data.image}
+      imageClass="product-detail-image"
+      placeholderClass="product-detail-placeholder"
+      loading="eager"
+      highPriority
+    />
+    {product.source === 'local' ? (
+      <div class="prose"><Content /></div>
+    ) : product.detail ? (
+      <div class="prose"><p>{product.detail}</p></div>
+    ) : null}
+    <section class="product-information">
+      <h2>规格</h2>
+      {product.data.specs.length ? (
+        <dl class="product-specs">
+          {product.data.specs.map((spec) => (
+            <div><dt>{spec.label}</dt><dd>{spec.value}</dd></div>
+          ))}
+        </dl>
+      ) : <p class="empty">尚未提供经确认的商品规格。</p>}
+    </section>
+    <section class="product-information">
+      <h2>特点</h2>
+      {product.data.features.length ? (
+        <ul class="product-features">
+          {product.data.features.map((feature) => <li>{feature}</li>)}
+        </ul>
+      ) : <p class="empty">尚未提供经确认的商品特点。</p>}
+    </section>
+    <div class="article-end">
+      <a class="button-link" href={`${base}${product.data.contact.page}/`}>{product.data.contact.label} ↗</a>
+    </div>
+  </article>
+</BaseLayout>

@@ -1,0 +1,35 @@
+---
+import { getProducts } from '../../lib/products';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductImage from '../../components/ProductImage.astro';
+
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+const products = await getProducts();
+---
+<BaseLayout title="商品推荐" description="查看商品名称、分类与已确认的商品资料。">
+  <section class="listing-page">
+    <p class="eyebrow">商品推荐</p>
+    <h1>商品资料</h1>
+    <p class="listing-intro">商品卡片只展示内容资料中已填写的信息。标注为示例的条目不代表实际商品。</p>
+    {products.length ? (
+      <div class="card-grid">
+        {products.map((product) => (
+          <article class="content-card">
+            <div class="product-card-labels">
+              <span class="product-category">{product.data.category}</span>
+              {product.data.recommended && <span class="sample-badge">推荐</span>}
+              {product.data.sample && <span class="sample-badge">示例商品</span>}
+            </div>
+            <ProductImage image={product.data.image} />
+            <h3>{product.data.name}</h3>
+            <p>{product.data.summary}</p>
+            <div class="product-card-actions">
+              <a class="card-link" href={`${base}products/${product.slug}/`}>查看商品资料 ↗</a>
+              <a class="product-contact-link" href={`${base}${product.data.contact.page}/`}>{product.data.contact.label}</a>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : <p class="empty">商品资料正在整理中。</p>}
+  </section>
+</BaseLayout>

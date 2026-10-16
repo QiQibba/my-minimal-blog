@@ -1,0 +1,28 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+const tutorials = (await getCollection('tutorials')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+---
+<BaseLayout title="产品使用教程" description="浏览产品使用教程与操作说明。标注为示例的内容仅用于页面展示。">
+  <section class="listing-page">
+    <p class="eyebrow">产品使用教程</p>
+    <h1>使用教程</h1>
+    <p class="listing-intro">浏览产品说明与操作指南。带有“示例教程”标记的内容仅用于展示页面结构，不对应实际产品。</p>
+    {tutorials.length ? (
+      <div class="card-grid">
+        {tutorials.map((tutorial) => (
+          <article class="content-card">
+            {tutorial.data.sample && <span class="sample-badge">示例教程</span>}
+            <h3>{tutorial.data.title}</h3>
+            <p>{tutorial.data.description}</p>
+            <a class="card-link" href={`${base}tutorials/${tutorial.id}/`}>阅读教程 ↗</a>
+          </article>
+        ))}
+      </div>
+    ) : <p class="empty">教程正在整理中。</p>}
+  </section>
+</BaseLayout>

@@ -8,11 +8,12 @@ export async function getStaticPaths() {
 }
 const { post } = Astro.props;
 const { Content } = await render(post);
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
 const date = post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 ---
-<BaseLayout title={`${post.data.title} — 慢慢记录`} description={post.data.description}>
+<BaseLayout title={`${post.data.title} — 站内文章`} description={post.data.description}>
   <article class="article-page">
-    <a class="back-link" href="/">← 返回首页</a>
+    <a class="back-link" href={base}>← 返回首页</a>
     <header class="article-header">
       <p class="eyebrow">{post.data.category} · {date}</p>
       <h1>{post.data.title}</h1>
@@ -20,6 +21,6 @@ const date = post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', mo
       <div class="tags">{post.data.tags.map((tag) => <span>#{tag}</span>)}</div>
     </header>
     <div class="prose"><Content /></div>
-    <div class="article-end"><span>—</span><p>感谢阅读，愿你今天也有所收获。</p><a href="/archive">继续阅读其他文章 ↗</a></div>
+    <div class="article-end"><span>—</span><p>感谢阅读，愿你今天也有所收获。</p><a href={`${base}archive/`}>继续阅读其他文章 ↗</a></div>
   </article>
 </BaseLayout>
