@@ -29,6 +29,10 @@ tags: ["随笔", "记录"]
 正文从这里开始。支持 **粗体**、列表、链接和代码块。
 ```
 
+## 添加商品
+
+商品文件结构、字段说明和图片路径请参阅[《如何添加商品》](./docs/how-to-add-products.md)，并使用[干净商品模板](./docs/templates/product-template.md)创建新条目。
+
 ## 部署到 Cloudflare
 
 1. 将整个项目上传到一个 GitHub 仓库。
