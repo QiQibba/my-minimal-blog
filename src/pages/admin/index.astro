@@ -20,8 +20,8 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     <p class="admin-lead">选择内容类型后填写表单。商品和现有文字教程可载入公开资料。</p>
 
     <aside class="admin-warning" role="status">
-      <strong>当前仅接入商品只读接口</strong>
-      <p>任何访客都能打开此页面。商品可从公开接口读取；新增、编辑、删除、保存和发布尚未接入后端，表单内容不会保存、上传或提交，请勿输入机密资料。</p>
+      <strong>管理页面受 Cloudflare Access 保护</strong>
+      <p>公开商品列表只读；下方商品草稿单独保存在 D1，不会修改正式商品。发布功能尚未接入，请勿将未确认内容视为已发布。</p>
     </aside>
 
     <div
@@ -33,6 +33,18 @@ const tutorialRecords = tutorials.map((tutorial) => ({
       <h2 id="admin-products-title">商品列表</h2>
       <p class="admin-product-status" id="product-list-status" role="status" aria-live="polite">正在读取商品列表…</p>
       <ul class="admin-product-list" id="product-list"></ul>
+    </section>
+
+    <section class="admin-draft-section" aria-labelledby="admin-drafts-title">
+      <div class="admin-draft-heading">
+        <div>
+          <h2 id="admin-drafts-title">商品草稿（D1）</h2>
+          <p class="admin-hint">这里只显示草稿 API 中的商品草稿；不会与上方公开商品列表混用。</p>
+        </div>
+        <button class="button-link secondary admin-draft-action" type="button" id="new-draft-button">新建商品草稿</button>
+      </div>
+      <p class="admin-product-status" id="draft-list-status" role="status" aria-live="polite">正在读取商品草稿…</p>
+      <ul class="admin-product-list" id="draft-list"></ul>
     </section>
 
     <form class="admin-form" id="admin-form">
@@ -193,10 +205,10 @@ const tutorialRecords = tutorials.map((tutorial) => ({
 
       <div class="admin-actions">
         <button class="button-link secondary" type="button" id="preview-button">预览填写内容</button>
-        <button class="button-link" type="button" id="save-button" disabled>保存草稿</button>
+        <button class="button-link admin-draft-action" type="button" id="save-button" disabled>保存草稿</button>
         <button class="button-link" type="button" id="publish-button" disabled>发布内容</button>
       </div>
-      <p class="admin-hint">保存和发布功能尚未接入后端，当前不可用。</p>
+      <p class="admin-hint">发布功能尚未接入，发布按钮保持禁用；保存操作只会创建或更新 D1 草稿。</p>
       <p class="admin-feedback" id="admin-feedback" role="status" aria-live="polite"></p>
     </form>
 
@@ -205,7 +217,7 @@ const tutorialRecords = tutorials.map((tutorial) => ({
       <h2 id="preview-title"></h2>
       <p id="preview-summary"></p>
       <pre id="preview-body"></pre>
-      <p class="admin-hint">预览只根据当前表单内容生成，不保存或发布。</p>
+      <p class="admin-hint" id="preview-note">预览只根据当前表单内容生成，不保存或发布。</p>
     </section>
   </section>
 </BaseLayout>
@@ -260,6 +272,30 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     margin-top: 28px;
   }
 
+  .admin-draft-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  .admin-draft-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .admin-draft-heading h2 {
+    margin: 0 0 8px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 23px;
+  }
+
+  .admin-draft-heading .admin-hint {
+    margin: 0 0 12px;
+  }
+
   .admin-product-section h2 {
     margin-bottom: 12px;
     font-family: "Noto Serif SC", serif;
@@ -295,6 +331,20 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     margin: 6px 0 0;
     color: var(--muted);
     font-size: 14px;
+  }
+
+  .admin-draft-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .admin-draft-item-actions .button-link {
+    min-height: 38px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
   }
 
   .admin-form,
@@ -413,6 +463,12 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     opacity: 0.55;
   }
 
+  .admin-draft-item-actions .button-link:disabled,
+  .admin-draft-heading .button-link:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   .admin-feedback {
     min-height: 1.5em;
     margin: 0;
@@ -459,11 +515,33 @@ const tutorialRecords = tutorials.map((tutorial) => ({
       width: 100%;
       justify-content: center;
     }
+
+    .admin-draft-heading {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .admin-draft-heading > .button-link {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
 
 <script>
-  import { getContentApiProducts, type ContentApiRecord } from '../../lib/content-api';
+  import {
+    createProductDraft,
+    deleteProductDraft,
+    DraftApiError,
+    getContentApiProducts,
+    getProductDraft,
+    getProductDraftPreview,
+    getProductDrafts,
+    updateProductDraft,
+    type ContentApiRecord,
+    type ContentDraft,
+    type ProductDraftContent,
+  } from '../../lib/content-api';
 
   type ExistingRecord = ContentApiRecord;
 
@@ -482,11 +560,46 @@ const tutorialRecords = tutorials.map((tutorial) => ({
   const form = document.querySelector<HTMLFormElement>('#admin-form');
   const feedback = document.querySelector<HTMLElement>('#admin-feedback');
   const preview = document.querySelector<HTMLElement>('#admin-preview');
+  const previewNote = document.querySelector<HTMLElement>('#preview-note');
   const productList = document.querySelector<HTMLUListElement>('#product-list');
   const productListStatus = document.querySelector<HTMLElement>('#product-list-status');
+  const draftList = document.querySelector<HTMLUListElement>('#draft-list');
+  const draftListStatus = document.querySelector<HTMLElement>('#draft-list-status');
+  const saveButton = document.querySelector<HTMLButtonElement>('#save-button');
+  const newDraftButton = document.querySelector<HTMLButtonElement>('#new-draft-button');
+  let currentDraftId: string | null = null;
+  let draftBusy = false;
 
   function activeFields() {
     return document.querySelector<HTMLElement>(`[data-content-fields="${contentType?.value}"]`);
+  }
+
+  function setDraftBusy(busy: boolean) {
+    draftBusy = busy;
+    document.querySelectorAll<HTMLButtonElement>('.admin-draft-action').forEach((button) => {
+      button.disabled = busy;
+    });
+    updateDraftButtonState();
+  }
+
+  function updateDraftButtonState() {
+    if (saveButton) {
+      saveButton.disabled = draftBusy || contentType?.value !== 'product';
+    }
+  }
+
+  function draftErrorMessage(error: unknown) {
+    if (error instanceof DraftApiError && error.status === 401) {
+      return '未登录或登录已过期。请通过 Cloudflare Access 重新登录后重试。';
+    }
+    if (error instanceof DraftApiError && error.status === 403) {
+      return '当前账号没有管理商品草稿的权限。';
+    }
+    return error instanceof Error ? error.message : '发生未知错误，请重试。';
+  }
+
+  function showDraftError(error: unknown) {
+    if (feedback) feedback.textContent = `草稿操作失败：${draftErrorMessage(error)}`;
   }
 
   function setFormValue(name: string, value: string | boolean) {
@@ -538,6 +651,55 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     }
   }
 
+  function isObjectRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  function draftString(data: Record<string, unknown>, key: string) {
+    return typeof data[key] === 'string' ? data[key] : '';
+  }
+
+  function draftSpecs(data: Record<string, unknown>) {
+    if (!Array.isArray(data.specs)) return [];
+    return data.specs.flatMap((spec) => {
+      if (
+        !isObjectRecord(spec) ||
+        typeof spec.label !== 'string' ||
+        typeof spec.value !== 'string'
+      ) {
+        return [];
+      }
+      return [{ label: spec.label, value: spec.value }];
+    });
+  }
+
+  function draftFeatures(data: Record<string, unknown>) {
+    return Array.isArray(data.features)
+      ? data.features.filter((feature): feature is string => typeof feature === 'string')
+      : [];
+  }
+
+  function populateDraft(draft: ContentDraft) {
+    const data = draft.content_json;
+    const image = isObjectRecord(data.image) ? data.image : {};
+    const contact = isObjectRecord(data.contact) ? data.contact : {};
+    setFormValue('slug', draft.slug);
+    setFormValue('name', draftString(data, 'name') || draft.title);
+    setFormValue('category', draftString(data, 'category'));
+    setFormValue('summary', draftString(data, 'summary'));
+    setFormValue('imageSrc', typeof image.src === 'string' ? image.src : '');
+    setFormValue('imageAlt', typeof image.alt === 'string' ? image.alt : '');
+    setFormValue('specs', draftSpecs(data).map(({ label, value }) => `${label}: ${value}`).join('\n'));
+    setFormValue('features', draftFeatures(data).join('\n'));
+    setFormValue('recommended', data.recommended === true);
+    setFormValue('contactLabel', typeof contact.label === 'string' ? contact.label : '咨询客服');
+    setFormValue('detail', draftString(data, 'detail'));
+    currentDraftId = draft.id;
+    if (editMode) editMode.value = 'new';
+    updateRecordOptions(false, false);
+    if (feedback) feedback.textContent = `已载入草稿「${draft.title}」，保存时将更新此 D1 草稿。`;
+  }
+
   function readValue(name: string) {
     const field = activeFields()?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
     if (!field) return '';
@@ -546,10 +708,224 @@ const tutorialRecords = tutorials.map((tutorial) => ({
       : field.value.trim();
   }
 
-  function showUnavailableAction(action: string) {
-    if (feedback) {
-      feedback.textContent = `尚未连接后端，无法${action}。当前表单内容没有保存。`;
+  function serializeProductDraft() {
+    const title = readValue('name');
+    const slug = readValue('slug');
+    const category = readValue('category');
+    const summary = readValue('summary');
+    const imageSrc = readValue('imageSrc');
+    const imageAlt = readValue('imageAlt');
+
+    if (!title || title.length > 200) {
+      throw new Error('商品名称必填且不能超过 200 个字符。');
     }
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
+      throw new Error('slug 必须是最多 100 个字符的小写字母、数字和连字符。');
+    }
+    if (!category || !summary) {
+      throw new Error('请填写商品分类和商品简介。');
+    }
+    if (Boolean(imageSrc) !== Boolean(imageAlt)) {
+      throw new Error('填写商品图片时，图片地址和替代文字都必须填写。');
+    }
+    if (imageSrc && !(/^\/images\/products\/[^?#\s]+$/.test(imageSrc) || /^https:\/\/\S+$/i.test(imageSrc))) {
+      throw new Error('商品图片地址须位于 /images/products/ 或使用 HTTPS。');
+    }
+
+    const specs = readValue('specs')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const separator = line.indexOf(':');
+        if (separator < 1 || !line.slice(separator + 1).trim()) {
+          throw new Error('规格请按“名称: 内容”逐行填写。');
+        }
+        return {
+          label: line.slice(0, separator).trim(),
+          value: line.slice(separator + 1).trim(),
+        };
+      });
+    const features = readValue('features')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const contentJson: ProductDraftContent = {
+      name: title,
+      category,
+      summary,
+      ...(imageSrc ? { image: { src: imageSrc, alt: imageAlt } } : {}),
+      specs,
+      features,
+      recommended: readValue('recommended') === 'true',
+      contact: {
+        label: readValue('contactLabel') || '咨询客服',
+        page: 'contact',
+      },
+      sample: false,
+      detail: readValue('detail'),
+    };
+
+    if (new TextEncoder().encode(JSON.stringify(contentJson)).byteLength > 48 * 1024) {
+      throw new Error('草稿内容超过 48 KiB，请缩短商品介绍或字段内容。');
+    }
+
+    return {
+      content_type: 'product' as const,
+      title,
+      slug,
+      content_json: contentJson,
+    };
+  }
+
+  function renderDraftPreview(draft: ContentDraft) {
+    if (!preview) return;
+    const data = draft.content_json;
+    const image = isObjectRecord(data.image) ? data.image : {};
+    const contact = isObjectRecord(data.contact) ? data.contact : {};
+    const specs = draftSpecs(data);
+    const features = draftFeatures(data);
+    const summary = [draftString(data, 'category'), draftString(data, 'summary')]
+      .filter(Boolean)
+      .join(' · ');
+    const details = [
+      typeof image.src === 'string' && image.src
+        ? `图片：${image.src}\n替代文字：${typeof image.alt === 'string' ? image.alt : ''}`
+        : '',
+      specs.length
+        ? `规格：\n${specs.map(({ label, value }) => `${label}: ${value}`).join('\n')}`
+        : '',
+      features.length ? `特点：\n${features.join('\n')}` : '',
+      `推荐展示：${data.recommended === true ? '是' : '否'}`,
+      `咨询入口：${typeof contact.label === 'string' ? contact.label : '咨询客服'}`,
+      draftString(data, 'detail') ? `详细介绍：\n${draftString(data, 'detail')}` : '',
+    ].filter(Boolean);
+
+    preview.querySelector<HTMLElement>('#preview-title')!.textContent = draft.title;
+    preview.querySelector<HTMLElement>('#preview-summary')!.textContent = summary;
+    preview.querySelector<HTMLElement>('#preview-body')!.textContent = details.join('\n\n');
+    if (previewNote) previewNote.textContent = '此内容来自 D1 草稿预览接口；仅供预览，不会发布。';
+    preview.hidden = false;
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderDraftList(drafts: ContentDraft[]) {
+    if (!draftList) return;
+    draftList.replaceChildren();
+
+    for (const draft of drafts) {
+      const item = document.createElement('li');
+      item.className = 'admin-product-item';
+
+      const title = document.createElement('h3');
+      title.textContent = draft.title;
+      item.append(title);
+
+      const metadata = document.createElement('p');
+      metadata.textContent = `Slug：${draft.slug} · 状态：${draft.status} · 更新：${draft.updated_at}`;
+      item.append(metadata);
+
+      const actions = document.createElement('div');
+      actions.className = 'admin-draft-item-actions';
+      const edit = document.createElement('button');
+      edit.className = 'button-link secondary admin-draft-action';
+      edit.type = 'button';
+      edit.textContent = '编辑';
+      edit.addEventListener('click', () => {
+        void runDraftAction(async () => {
+          if (contentType) contentType.value = 'product';
+          document.querySelectorAll<HTMLElement>('[data-content-fields]').forEach((fields) => {
+            fields.hidden = fields.dataset.contentFields !== 'product';
+          });
+          currentDraftId = null;
+          const latestDraft = await getProductDraft(draft.id);
+          populateDraft(latestDraft);
+          if (preview) preview.hidden = true;
+          feedback?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      });
+
+      const previewButton = document.createElement('button');
+      previewButton.className = 'button-link secondary admin-draft-action';
+      previewButton.type = 'button';
+      previewButton.textContent = '预览';
+      previewButton.addEventListener('click', () => {
+        void runDraftAction(async () => {
+          const previewDraft = await getProductDraftPreview(draft.id);
+          renderDraftPreview(previewDraft);
+          if (feedback) feedback.textContent = `已读取草稿「${previewDraft.title}」的 D1 预览。`;
+        });
+      });
+
+      const remove = document.createElement('button');
+      remove.className = 'button-link secondary admin-draft-action';
+      remove.type = 'button';
+      remove.textContent = '删除';
+      remove.addEventListener('click', () => {
+        if (!window.confirm(`确定删除草稿「${draft.title}」吗？此操作不可撤销。`)) {
+          if (feedback) feedback.textContent = `已取消删除草稿「${draft.title}」。`;
+          return;
+        }
+        void runDraftAction(async () => {
+          await deleteProductDraft(draft.id);
+          if (currentDraftId === draft.id) resetProductDraftEditor();
+          if (feedback) feedback.textContent = `草稿「${draft.title}」已删除。`;
+          await loadDrafts();
+        });
+      });
+
+      actions.append(edit, previewButton, remove);
+      item.append(actions);
+      draftList.append(item);
+    }
+  }
+
+  async function loadDrafts() {
+    if (!draftListStatus) return;
+    draftListStatus.textContent = '正在读取商品草稿…';
+    try {
+      const drafts = await getProductDrafts();
+      renderDraftList(drafts);
+      draftListStatus.textContent = drafts.length
+        ? `已读取 ${drafts.length} 个商品草稿。`
+        : '目前没有商品草稿。';
+    } catch (error) {
+      draftList?.replaceChildren();
+      draftListStatus.textContent = `草稿列表读取失败：${draftErrorMessage(error)}`;
+    }
+  }
+
+  async function runDraftAction(action: () => Promise<void>) {
+    if (draftBusy) return;
+    setDraftBusy(true);
+    try {
+      await action();
+    } catch (error) {
+      showDraftError(error);
+    } finally {
+      setDraftBusy(false);
+    }
+  }
+
+  function resetProductDraftEditor() {
+    if (contentType) contentType.value = 'product';
+    if (editMode) editMode.value = 'new';
+    document.querySelectorAll<HTMLElement>('[data-content-fields]').forEach((fields) => {
+      fields.hidden = fields.dataset.contentFields !== 'product';
+    });
+    currentDraftId = null;
+    activeFields()?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach((field) => {
+      if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+        field.checked = false;
+      } else {
+        field.value = '';
+      }
+    });
+    setFormValue('contactLabel', '咨询客服');
+    if (preview) preview.hidden = true;
+    if (feedback) feedback.textContent = '已新建空白商品草稿表单；点击保存后将写入 D1。';
+    updateRecordOptions(false, false);
+    updateDraftButtonState();
   }
 
   async function loadProducts() {
@@ -590,23 +966,48 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     document.querySelectorAll<HTMLElement>('[data-content-fields]').forEach((fields) => {
       fields.hidden = fields.dataset.contentFields !== contentType.value;
     });
+    currentDraftId = null;
     updateRecordOptions();
+    updateDraftButtonState();
     if (feedback) feedback.textContent = '';
     if (preview) preview.hidden = true;
+    if (previewNote) previewNote.textContent = '预览只根据当前表单内容生成，不保存或发布。';
   });
 
-  editMode?.addEventListener('change', updateRecordOptions);
+  editMode?.addEventListener('change', () => {
+    currentDraftId = null;
+    updateRecordOptions();
+  });
   existingEntry?.addEventListener('change', () => {
     const record = existingEntry.selectedOptions[0]?.dataset.record;
-    if (record) populateRecord(JSON.parse(record));
+    if (record) {
+      currentDraftId = null;
+      populateRecord(JSON.parse(record));
+    }
   });
 
-  document.querySelector<HTMLButtonElement>('#save-button')?.addEventListener('click', () => {
-    showUnavailableAction('保存草稿');
+  newDraftButton?.addEventListener('click', resetProductDraftEditor);
+
+  saveButton?.addEventListener('click', () => {
+    void runDraftAction(async () => {
+      const input = serializeProductDraft();
+      const draftId = currentDraftId;
+      const wasEditingDraft = draftId !== null;
+      const saved = draftId !== null
+        ? await updateProductDraft(draftId, input)
+        : await createProductDraft(input);
+      currentDraftId = saved.id;
+      if (feedback) {
+        feedback.textContent = wasEditingDraft
+          ? `商品草稿「${saved.title}」已更新并保存到 D1。`
+          : `商品草稿「${saved.title}」已创建并保存到 D1。`;
+      }
+      await loadDrafts();
+    });
   });
 
   document.querySelector<HTMLButtonElement>('#publish-button')?.addEventListener('click', () => {
-    showUnavailableAction('发布内容');
+    if (feedback) feedback.textContent = '发布功能尚未接入；草稿仍只保存在 D1，未修改正式商品。';
   });
 
   document.querySelector<HTMLButtonElement>('#preview-button')?.addEventListener('click', () => {
@@ -617,6 +1018,7 @@ const tutorialRecords = tutorials.map((tutorial) => ({
     preview.querySelector<HTMLElement>('#preview-title')!.textContent = title;
     preview.querySelector<HTMLElement>('#preview-summary')!.textContent = summary;
     preview.querySelector<HTMLElement>('#preview-body')!.textContent = body;
+    if (previewNote) previewNote.textContent = '预览只根据当前表单内容生成，不保存或发布。';
     preview.hidden = false;
     preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (feedback) feedback.textContent = '已生成当前表单的临时预览；内容未保存。';
@@ -624,5 +1026,7 @@ const tutorialRecords = tutorials.map((tutorial) => ({
 
   form?.addEventListener('submit', (event) => event.preventDefault());
   updateRecordOptions();
+  updateDraftButtonState();
   void loadProducts();
+  void loadDrafts();
 </script>
