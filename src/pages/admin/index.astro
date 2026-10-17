@@ -1,0 +1,628 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+const tutorials = await getCollection('tutorials');
+const tutorialRecords = tutorials.map((tutorial) => ({
+  slug: tutorial.id,
+  title: tutorial.data.title,
+  description: tutorial.data.description,
+  pubDate: tutorial.data.pubDate.toISOString().slice(0, 10),
+  tags: tutorial.data.tags.join(', '),
+  detail: tutorial.body,
+}));
+---
+<BaseLayout title="内容管理后台" description="商品、教程、视频教程和文档说明的内容编辑框架。">
+  <section class="admin-page">
+    <p class="eyebrow">内容管理</p>
+    <h1>网站内容后台</h1>
+    <p class="admin-lead">选择内容类型后填写表单。商品和现有文字教程可载入公开资料。</p>
+
+    <aside class="admin-warning" role="status">
+      <strong>当前仅接入商品只读接口</strong>
+      <p>任何访客都能打开此页面。商品可从公开接口读取；新增、编辑、删除、保存和发布尚未接入后端，表单内容不会保存、上传或提交，请勿输入机密资料。</p>
+    </aside>
+
+    <div
+      class="admin-record-data"
+      data-tutorials={JSON.stringify(tutorialRecords)}
+    ></div>
+
+    <section class="admin-product-section" aria-labelledby="admin-products-title">
+      <h2 id="admin-products-title">商品列表</h2>
+      <p class="admin-product-status" id="product-list-status" role="status" aria-live="polite">正在读取商品列表…</p>
+      <ul class="admin-product-list" id="product-list"></ul>
+    </section>
+
+    <form class="admin-form" id="admin-form">
+      <div class="admin-form-heading">
+        <h2>编辑内容</h2>
+        <label class="admin-control">
+          内容类型
+          <select id="content-type" name="contentType">
+            <option value="product">商品</option>
+            <option value="tutorial">产品使用教程</option>
+            <option value="video">视频教程</option>
+            <option value="document">文档说明</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="admin-mode-row">
+        <label class="admin-control">
+          编辑方式
+          <select id="edit-mode" name="editMode">
+            <option value="new">新增内容</option>
+            <option value="edit">编辑现有内容</option>
+          </select>
+        </label>
+        <label class="admin-control" id="existing-entry-control" hidden>
+          选择现有内容
+          <select id="existing-entry" name="existingEntry"></select>
+        </label>
+      </div>
+
+      <p class="admin-empty-note" id="no-existing-note" hidden>此类型目前没有可编辑的已发布内容。</p>
+
+      <div class="admin-fields" data-content-fields="product">
+        <label class="admin-control">
+          唯一标识（文件名 slug）
+          <input name="slug" type="text" placeholder="例如 travel-mug" autocomplete="off" />
+        </label>
+        <label class="admin-control">
+          商品名称
+          <input name="name" type="text" />
+        </label>
+        <label class="admin-control">
+          商品分类
+          <input name="category" type="text" />
+        </label>
+        <label class="admin-control">
+          商品简介
+          <textarea name="summary" rows="3"></textarea>
+        </label>
+        <fieldset class="admin-media-fields">
+          <legend>商品图片（可选）</legend>
+          <label class="admin-control">
+            图片路径或 HTTPS 地址
+            <input name="imageSrc" type="url" placeholder="/images/products/example.webp" />
+          </label>
+          <label class="admin-control">
+            图片替代文字
+            <input name="imageAlt" type="text" />
+          </label>
+          <p>仓库图片应放在 <code>public/images/products/</code>，字段路径从 <code>/images/products/</code> 开始填写。</p>
+        </fieldset>
+        <label class="admin-control">
+          规格（每行一项，格式：名称: 内容）
+          <textarea name="specs" rows="4" placeholder="材质: 已确认的材质"></textarea>
+        </label>
+        <label class="admin-control">
+          特点（每行一项）
+          <textarea name="features" rows="4"></textarea>
+        </label>
+        <label class="admin-checkbox"><input name="recommended" type="checkbox" /> 推荐展示</label>
+        <label class="admin-control">
+          联系入口文字
+          <input name="contactLabel" type="text" value="咨询客服" />
+        </label>
+        <label class="admin-control">
+          商品详细介绍（Markdown）
+          <textarea name="detail" rows="8"></textarea>
+        </label>
+      </div>
+
+      <div class="admin-fields" data-content-fields="tutorial" hidden>
+        <label class="admin-control">
+          唯一标识（文件名 slug）
+          <input name="slug" type="text" placeholder="例如 setup-guide" autocomplete="off" />
+        </label>
+        <label class="admin-control">
+          教程标题
+          <input name="title" type="text" />
+        </label>
+        <label class="admin-control">
+          教程简介
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="admin-control">
+          发布日期
+          <input name="pubDate" type="date" />
+        </label>
+        <label class="admin-control">
+          标签（逗号分隔）
+          <input name="tags" type="text" />
+        </label>
+        <label class="admin-control">
+          教程内容（Markdown，可加入图片链接）
+          <textarea name="detail" rows="10"></textarea>
+        </label>
+      </div>
+
+      <div class="admin-fields" data-content-fields="video" hidden>
+        <label class="admin-control">
+          唯一标识（文件名 slug）
+          <input name="slug" type="text" placeholder="例如 product-video-guide" autocomplete="off" />
+        </label>
+        <label class="admin-control">
+          视频教程标题
+          <input name="title" type="text" />
+        </label>
+        <label class="admin-control">
+          简介
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="admin-control">
+          视频地址（视频平台或对象存储/CDN）
+          <input name="videoUrl" type="url" />
+        </label>
+        <label class="admin-control">
+          封面图片地址（可选）
+          <input name="thumbnailUrl" type="url" />
+        </label>
+        <label class="admin-control">
+          文字说明（可选，Markdown）
+          <textarea name="detail" rows="8"></textarea>
+        </label>
+      </div>
+
+      <div class="admin-fields" data-content-fields="document" hidden>
+        <label class="admin-control">
+          唯一标识（文件名 slug）
+          <input name="slug" type="text" placeholder="例如 product-manual" autocomplete="off" />
+        </label>
+        <label class="admin-control">
+          文档标题
+          <input name="title" type="text" />
+        </label>
+        <label class="admin-control">
+          文档简介
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="admin-control">
+          文档文件地址（PDF 等）
+          <input name="fileUrl" type="url" placeholder="/documents/manual.pdf" />
+        </label>
+        <label class="admin-control">
+          正文说明（Markdown，可选）
+          <textarea name="detail" rows="8"></textarea>
+        </label>
+        <p class="admin-hint">小型公开文件可存放于 <code>public/documents/</code>；较大文件建议使用对象存储/CDN。此表单尚未上传文件。</p>
+      </div>
+
+      <div class="admin-actions">
+        <button class="button-link secondary" type="button" id="preview-button">预览填写内容</button>
+        <button class="button-link" type="button" id="save-button" disabled>保存草稿</button>
+        <button class="button-link" type="button" id="publish-button" disabled>发布内容</button>
+      </div>
+      <p class="admin-hint">保存和发布功能尚未接入后端，当前不可用。</p>
+      <p class="admin-feedback" id="admin-feedback" role="status" aria-live="polite"></p>
+    </form>
+
+    <section class="admin-preview" id="admin-preview" hidden aria-label="内容预览">
+      <p class="eyebrow">本地预览</p>
+      <h2 id="preview-title"></h2>
+      <p id="preview-summary"></p>
+      <pre id="preview-body"></pre>
+      <p class="admin-hint">预览只根据当前表单内容生成，不保存或发布。</p>
+    </section>
+  </section>
+</BaseLayout>
+
+<style>
+  .admin-page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 0 72px;
+  }
+
+  .admin-page h1,
+  .admin-form h2,
+  .admin-preview h2 {
+    font-family: "Noto Serif SC", serif;
+  }
+
+  .admin-page h1 {
+    margin-bottom: 10px;
+    font-size: clamp(30px, 6vw, 42px);
+  }
+
+  .admin-lead,
+  .admin-warning p,
+  .admin-media-fields p,
+  .admin-hint,
+  .admin-empty-note {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .admin-warning {
+    margin: 24px 0;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent-strong);
+    border-radius: 8px;
+    background: var(--card);
+  }
+
+  .admin-warning strong {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .admin-warning p,
+  .admin-media-fields p {
+    margin: 0;
+  }
+
+  .admin-product-section {
+    margin-top: 28px;
+  }
+
+  .admin-product-section h2 {
+    margin-bottom: 12px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 23px;
+  }
+
+  .admin-product-status {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .admin-product-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .admin-product-item {
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+  }
+
+  .admin-product-item h3 {
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+
+  .admin-product-item p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .admin-form,
+  .admin-preview {
+    display: grid;
+    gap: 20px;
+    margin-top: 28px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+  }
+
+  .admin-form-heading,
+  .admin-mode-row,
+  .admin-actions {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .admin-form-heading {
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-form-heading h2 {
+    margin: 0;
+    font-size: 23px;
+  }
+
+  .admin-control {
+    display: grid;
+    flex: 1 1 260px;
+    gap: 7px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .admin-control input,
+  .admin-control textarea,
+  .admin-control select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 400;
+  }
+
+  .admin-control textarea {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  .admin-fields {
+    display: grid;
+    gap: 16px;
+  }
+
+  .admin-fields[hidden],
+  .admin-preview[hidden],
+  .admin-mode-row [hidden] {
+    display: none;
+  }
+
+  .admin-media-fields {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .admin-media-fields legend {
+    padding: 0 6px;
+    font-weight: 600;
+  }
+
+  .admin-checkbox {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 9px;
+    font-size: 14px;
+  }
+
+  .admin-checkbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-strong);
+  }
+
+  .admin-actions {
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .admin-actions .button-link {
+    min-height: 44px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .admin-actions .button-link:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .admin-feedback {
+    min-height: 1.5em;
+    margin: 0;
+    color: var(--accent-strong);
+    font-size: 14px;
+  }
+
+  .admin-preview h2 {
+    margin: 0;
+  }
+
+  .admin-preview p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-preview pre {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    font: inherit;
+  }
+
+  @media (max-width: 620px) {
+    .admin-page {
+      padding: 36px 0 56px;
+    }
+
+    .admin-form,
+    .admin-preview {
+      padding: 18px;
+    }
+
+    .admin-form-heading {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .admin-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .admin-actions .button-link {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  import { getContentApiProducts, type ContentApiRecord } from '../../lib/content-api';
+
+  type ExistingRecord = ContentApiRecord;
+
+  const recordData = document.querySelector<HTMLElement>('.admin-record-data');
+  const records: Record<string, ExistingRecord[]> = {
+    product: [],
+    tutorial: JSON.parse(recordData?.dataset.tutorials ?? '[]'),
+    video: [],
+    document: [],
+  };
+  const contentType = document.querySelector<HTMLSelectElement>('#content-type');
+  const editMode = document.querySelector<HTMLSelectElement>('#edit-mode');
+  const existingEntryControl = document.querySelector<HTMLElement>('#existing-entry-control');
+  const existingEntry = document.querySelector<HTMLSelectElement>('#existing-entry');
+  const noExistingNote = document.querySelector<HTMLElement>('#no-existing-note');
+  const form = document.querySelector<HTMLFormElement>('#admin-form');
+  const feedback = document.querySelector<HTMLElement>('#admin-feedback');
+  const preview = document.querySelector<HTMLElement>('#admin-preview');
+  const productList = document.querySelector<HTMLUListElement>('#product-list');
+  const productListStatus = document.querySelector<HTMLElement>('#product-list-status');
+
+  function activeFields() {
+    return document.querySelector<HTMLElement>(`[data-content-fields="${contentType?.value}"]`);
+  }
+
+  function setFormValue(name: string, value: string | boolean) {
+    const field = activeFields()?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+    if (!field) return;
+    if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+      field.checked = Boolean(value);
+    } else {
+      field.value = String(value);
+    }
+  }
+
+  function updateRecordOptions(resetNewFields = true, populateSelected = true) {
+    if (!contentType || !existingEntry || !editMode || !existingEntryControl || !noExistingNote) return;
+
+    const type = contentType.value;
+    const typeRecords = records[type] ?? [];
+    existingEntry.replaceChildren();
+
+    for (const record of typeRecords) {
+      const option = document.createElement('option');
+      option.value = String(record.slug ?? '');
+      option.textContent = String(record.name ?? record.title ?? record.slug ?? '未命名内容');
+      option.dataset.record = JSON.stringify(record);
+      existingEntry.append(option);
+    }
+
+    const editing = editMode.value === 'edit';
+    existingEntryControl.hidden = !editing || typeRecords.length === 0;
+    noExistingNote.hidden = !editing || typeRecords.length > 0;
+
+    if (editing && populateSelected && existingEntry.selectedOptions[0]) {
+      populateRecord(JSON.parse(existingEntry.selectedOptions[0].dataset.record ?? '{}'));
+    } else if (!editing && resetNewFields) {
+      activeFields()?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach((field) => {
+        if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+          field.checked = false;
+        } else {
+          field.value = '';
+        }
+      });
+      setFormValue('contactLabel', '咨询客服');
+    }
+  }
+
+  function populateRecord(record: ExistingRecord) {
+    for (const [name, value] of Object.entries(record)) {
+      setFormValue(name, value);
+    }
+  }
+
+  function readValue(name: string) {
+    const field = activeFields()?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+    if (!field) return '';
+    return field instanceof HTMLInputElement && field.type === 'checkbox'
+      ? String(field.checked)
+      : field.value.trim();
+  }
+
+  function showUnavailableAction(action: string) {
+    if (feedback) {
+      feedback.textContent = `尚未连接后端，无法${action}。当前表单内容没有保存。`;
+    }
+  }
+
+  async function loadProducts() {
+    try {
+      records.product = await getContentApiProducts();
+      if (productList && productListStatus) {
+        productList.replaceChildren();
+        for (const product of records.product) {
+          const item = document.createElement('li');
+          item.className = 'admin-product-item';
+
+          const name = document.createElement('h3');
+          name.textContent = product.name;
+          item.append(name);
+
+          const category = document.createElement('p');
+          category.textContent = `分类：${product.category}`;
+          item.append(category);
+
+          const summary = document.createElement('p');
+          summary.textContent = product.summary;
+          item.append(summary);
+
+          productList.append(item);
+        }
+        productListStatus.textContent = `已读取 ${records.product.length} 个商品。`;
+      }
+      updateRecordOptions(false, false);
+    } catch (error) {
+      if (productListStatus) {
+        const reason = error instanceof Error ? error.message : '未知错误';
+        productListStatus.textContent = `商品列表读取失败：${reason}`;
+      }
+    }
+  }
+
+  contentType?.addEventListener('change', () => {
+    document.querySelectorAll<HTMLElement>('[data-content-fields]').forEach((fields) => {
+      fields.hidden = fields.dataset.contentFields !== contentType.value;
+    });
+    updateRecordOptions();
+    if (feedback) feedback.textContent = '';
+    if (preview) preview.hidden = true;
+  });
+
+  editMode?.addEventListener('change', updateRecordOptions);
+  existingEntry?.addEventListener('change', () => {
+    const record = existingEntry.selectedOptions[0]?.dataset.record;
+    if (record) populateRecord(JSON.parse(record));
+  });
+
+  document.querySelector<HTMLButtonElement>('#save-button')?.addEventListener('click', () => {
+    showUnavailableAction('保存草稿');
+  });
+
+  document.querySelector<HTMLButtonElement>('#publish-button')?.addEventListener('click', () => {
+    showUnavailableAction('发布内容');
+  });
+
+  document.querySelector<HTMLButtonElement>('#preview-button')?.addEventListener('click', () => {
+    if (!preview) return;
+    const title = readValue('name') || readValue('title') || readValue('slug') || '未命名内容';
+    const summary = readValue('summary') || readValue('description') || readValue('videoUrl') || readValue('fileUrl');
+    const body = readValue('detail');
+    preview.querySelector<HTMLElement>('#preview-title')!.textContent = title;
+    preview.querySelector<HTMLElement>('#preview-summary')!.textContent = summary;
+    preview.querySelector<HTMLElement>('#preview-body')!.textContent = body;
+    preview.hidden = false;
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (feedback) feedback.textContent = '已生成当前表单的临时预览；内容未保存。';
+  });
+
+  form?.addEventListener('submit', (event) => event.preventDefault());
+  updateRecordOptions();
+  void loadProducts();
+</script>
