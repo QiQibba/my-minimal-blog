@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qiqibba-content-api",
+  "main": "cloudflare-worker.js",
+  "compatibility_date": "2026-10-16",
+  "keep_vars": true,
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "9ik.cc/api/admin/*",
+      "zone_name": "9ik.cc"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DRAFTS_DB",
+      "database_name": "qiqibba-content-drafts",
+      "database_id": "886fac4b-a1f2-44a5-a1ee-2e67e220929b"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
